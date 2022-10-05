@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useRef, useState } from "react";
 
 import * as faceLandmarksDetection from "@tensorflow-models/face-landmarks-detection";
 import * as faceMesh from "@mediapipe/face_mesh";
@@ -11,6 +12,11 @@ import Webcam from "react-webcam";
 const App = () => {
   const webcam = useRef<Webcam>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+
+  const [isCapture, setIsCapture] = useState<boolean>(false);
+  const [currentPrediction, setCurrentPrediction] = useState();
+  const [capturedRaw, setCapturedRaw] = useState<any>([]);
+  const [capturedFace, setCapturedFace] = useState<any>([]);
 
   const runDetection = async () => {
     const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
@@ -37,9 +43,12 @@ const App = () => {
         if (webcamCurrent.video.readyState === 4) {
           const video = webcamCurrent.video;
           const predictions = await detector.estimateFaces(video);
-          requestAnimationFrame(() => {
-            draw(predictions);
-          });
+          setCurrentPrediction(predictions);
+          if (predictions.length > 0) {
+            requestAnimationFrame(() => {
+              draw(predictions);
+            });
+          }
           setTimeout(() => {
             detect(detector);
           }, 250);
@@ -92,24 +101,51 @@ const App = () => {
     });
   };
 
+  const capture = (predictions: any) => {
+    try {
+      const webcamCurrent = webcam.current as any;
+      predictions.forEach((x: any) => {
+        const faceCanvas = document.createElement("canvas");
+        faceCanvas.width = x.box.width;
+        faceCanvas.height = x.box.height;
+        const ctx = faceCanvas.getContext("2d") as CanvasRenderingContext2D;
+        const image = new Image();
+        image.onload = () => {
+          ctx.drawImage(image, x.box.xMin, x.box.yMin, x.box.width, x.box.height, 0, 0, x.box.width, x.box.height);
+        };
+        image.src = webcamCurrent.getScreenshot();
+        setCapturedFace((prevState: any) => [...prevState, faceCanvas.toDataURL("image/jpeg", 1)]);
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     runDetection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webcam.current?.video?.readyState]);
+
+  useEffect(() => {
+    if (isCapture && webcam.current && currentPrediction) {
+      capture(currentPrediction);
+    }
+  }, [currentPrediction]);
 
   return (
     <div className="App">
       <header className="header">
         <div className="title">Face Detection</div>
+        <button onClick={() => setIsCapture(!isCapture)}>capture {isCapture ? "on" : "off"}</button>
       </header>
       <Webcam
-        audio={false}
         ref={webcam}
+        audio={false}
+        screenshotFormat="image/jpeg"
         style={{
           position: "absolute",
           margin: "auto",
           textAlign: "center",
-          top: 50,
+          top: 250,
           left: 0,
           right: 0,
         }}
@@ -120,11 +156,21 @@ const App = () => {
           position: "absolute",
           margin: "auto",
           textAlign: "center",
-          top: 50,
+          top: 250,
           left: 0,
           right: 0,
         }}
       />
+      <div style={{ display: "flex" }}>
+        {capturedFace.map((x: string) => (
+          <img src={x} alt={x} height={100} width={100} />
+        ))}
+      </div>
+      <div style={{ display: "flex", whiteSpace:"pre-line" }}>
+        {capturedRaw.map((x: string) => (
+          <img src={x} alt={x} height={100} width={100} />
+        ))}
+      </div>
     </div>
   );
 };
