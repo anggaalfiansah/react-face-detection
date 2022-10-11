@@ -112,9 +112,9 @@ const App = () => {
         const image = new Image();
         image.onload = () => {
           ctx.drawImage(image, x.box.xMin, x.box.yMin, x.box.width, x.box.height, 0, 0, x.box.width, x.box.height);
+          setCapturedFace((prevState: any) => [...prevState, faceCanvas.toDataURL("image/jpeg", 1)]);
         };
         image.src = webcamCurrent.getScreenshot();
-        setCapturedFace((prevState: any) => [...prevState, faceCanvas.toDataURL("image/jpeg", 1)]);
       });
     } catch (error) {
       console.log(error);
@@ -133,43 +133,44 @@ const App = () => {
 
   return (
     <div className="App">
-      <header className="header">
+      <header className="header my-2">
         <div className="title">Face Detection</div>
-        <button onClick={() => setIsCapture(!isCapture)}>capture {isCapture ? "on" : "off"}</button>
+        <button className="btn btn-primary" onClick={() => setIsCapture(!isCapture)}>
+          capture {isCapture ? "on" : "off"}
+        </button>
       </header>
-      <Webcam
-        ref={webcam}
-        audio={false}
-        screenshotFormat="image/jpeg"
-        style={{
-          position: "absolute",
-          margin: "auto",
-          textAlign: "center",
-          top: 250,
-          left: 0,
-          right: 0,
-        }}
-      />
-      <canvas
-        ref={canvas}
-        style={{
-          position: "absolute",
-          margin: "auto",
-          textAlign: "center",
-          top: 250,
-          left: 0,
-          right: 0,
-        }}
-      />
-      <div style={{ display: "flex" }}>
-        {capturedFace.map((x: string) => (
-          <img src={x} alt={x} height={100} width={100} />
-        ))}
-      </div>
-      <div style={{ display: "flex", whiteSpace:"pre-line" }}>
-        {capturedRaw.map((x: string) => (
-          <img src={x} alt={x} height={100} width={100} />
-        ))}
+      <div className="container">
+        <div className="d-flex flex-row justify-content-between">
+          <div className="col-6">
+            {capturedFace.map((x: string) => (
+              <img src={x} alt={x} height={100} width={100} />
+            ))}
+          </div>
+          <div className="col-6" style={{ position: "relative" }}>
+            <Webcam
+              ref={webcam}
+              audio={false}
+              screenshotFormat="image/jpeg"
+              style={{
+                position: "absolute",
+                margin: "auto",
+                textAlign: "center",
+                left: 0,
+                right: 0,
+              }}
+            />
+            <canvas
+              ref={canvas}
+              style={{
+                position: "absolute",
+                margin: "auto",
+                textAlign: "center",
+                left: 0,
+                right: 0,
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
